@@ -164,6 +164,41 @@ To auto-deny dangerous evaluations while auto-approving the rest, add:
 }
 ```
 
+### Security
+
+What the peer relies on today, and the one risk knowingly accepted:
+
+**Covered.** The server binds loopback only (`127.0.0.1`, verifiable with
+`lsof -nP -iTCP:8086 -sTCP:LISTEN`) and never starts unless you start it.
+Every agent-driven call passes the driving side's ECA approval gate. `/eval`
+runs inside `EcaPeerSandbox` — advertised denylist plus timeout — which stops
+accident-shaped damage (snapshot, exit, FFI, `become:`, the peer machinery
+itself) even from requests that bypassed approval.
+
+**Residual risk.** Loopback is per-machine, not per-caller: while a peer is
+listening, *any* local process can hit it — including your browser. A
+malicious webpage can `POST` to `localhost:8086/eval` as a CORS "simple
+request" (`text/plain`, no preflight); the page can't read the response, but
+the eval executes anyway. This is the same gap that led Jupyter to adopt
+tokens in 2016. It is accepted here deliberately: peers are short-lived,
+explicitly started experiment fixtures on a single-user machine, driving
+disposable images, with the sandbox blunting drive-by payloads.
+
+**When that acceptance expires** — any of the following triggers adding the
+deferred auth (an opaque random token in an `Authorization: Bearer` header,
+read by the custom tools from a mode-600 file; *not* a JWT — with issuer and
+verifier being the same image, a signature proves nothing a stored random
+string doesn't, and buys the `alg`-confusion bug class for free):
+
+1. A peer runs unattended or auto-starts with the image
+2. Anything binds beyond loopback (hard requirement, immediately)
+3. The machine gains a second human user
+4. The denylist loosens (e.g. a real `save` op — persistence plus drive-by
+   is a worse combination)
+
+If auth ever wants a second knob (sessions, scopes, expiry), that is the
+signal to stop hand-rolling and adopt a real protocol.
+
 ## Architecture
 
 | Package | Responsibility |
