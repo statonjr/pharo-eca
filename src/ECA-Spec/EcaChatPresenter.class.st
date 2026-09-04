@@ -140,8 +140,8 @@ EcaChatPresenter >> sendPrompt [
 { #category : 'updating' }
 EcaChatPresenter >> updateTranscriptWith: aChat [
 	chatId = aChat id ifFalse: [ chatId ifNotNil: [ ^ self ] ].
-	transcript text: (String streamContents: [ :s |
-		aChat contents do: [ :block | self render: block on: s ] ]).
+	transcript text: (self renderMarkdown: (String streamContents: [ :s |
+		aChat contents do: [ :block | self render: block on: s ] ])).
 	"Open the approval dialog once per tool call, not once per re-render."
 	aChat pendingToolCalls do: [ :block |
 		(self approvalsSeen includes: block toolCallId) ifFalse: [
@@ -221,6 +221,24 @@ EcaChatPresenter >> render: aBlock on: aStream [
 { #category : 'accessing' }
 EcaChatPresenter >> approvalsSeen [
 	^ approvalsSeen ifNil: [ approvalsSeen := Set new ]
+]
+
+{ #category : 'updating' }
+EcaChatPresenter >> renderMarkdown: aString [
+	"Answer rich Text via Microdown when available (headings, bold, code
+	 blocks); fall back to the plain string in images without Microdown
+	 or on any composer hiccup mid-stream."
+
+	| microdown composer document |
+	microdown := Smalltalk at: #Microdown ifAbsent: [ ^ aString ].
+	composer := Smalltalk at: #MicRichTextComposer ifAbsent: [ ^ aString ].
+	^ [
+		document := microdown parse: aString.
+		[ composer new asRichText: document ]
+			on: MessageNotUnderstood
+			do: [ :e | composer new visit: document ] ]
+		on: Error
+		do: [ :e | aString ]
 ]
 
 { #category : 'initialization' }
