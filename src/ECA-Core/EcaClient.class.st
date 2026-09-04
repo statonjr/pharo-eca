@@ -146,8 +146,10 @@ EcaClient >> queryCommands: aString inChat: chatId [
 
 { #category : 'api - tools' }
 EcaClient >> approveToolCall: toolCallId inChat: chatId [
-	^ connection
-		sendRequest: 'chat/toolCallApprove'
+	"Notification per protocol (no id, no response)."
+
+	connection
+		sendNotification: 'chat/toolCallApprove'
 		params: (Dictionary new
 			at: 'chatId' put: chatId;
 			at: 'toolCallId' put: toolCallId;
@@ -156,8 +158,10 @@ EcaClient >> approveToolCall: toolCallId inChat: chatId [
 
 { #category : 'api - tools' }
 EcaClient >> rejectToolCall: toolCallId inChat: chatId [
-	^ connection
-		sendRequest: 'chat/toolCallReject'
+	"Notification per protocol (no id, no response)."
+
+	connection
+		sendNotification: 'chat/toolCallReject'
 		params: (Dictionary new
 			at: 'chatId' put: chatId;
 			at: 'toolCallId' put: toolCallId;
@@ -166,7 +170,10 @@ EcaClient >> rejectToolCall: toolCallId inChat: chatId [
 
 { #category : 'api - chat' }
 EcaClient >> stopPrompt: chatId [
-	^ connection
-		sendRequest: 'chat/promptStop'
+	"Notification per protocol (no id, no response)."
+
+	chatId ifNil: [ ^ self ].
+	connection
+		sendNotification: 'chat/promptStop'
 		params: (Dictionary new at: 'chatId' put: chatId; yourself)
 ]
