@@ -44,9 +44,9 @@ EcaClient >> transport [
 { #category : 'lifecycle' }
 EcaClient >> start [
 	| initResult |
-	transport := EcaSubprocessTransport command: {
-		EcaServerLocator new resolve.
-		'server' }.
+	transport := EcaSubprocessTransport command:
+		{ EcaServerLocator new resolve. 'server' }
+			, EcaSettings serverArgs substrings.
 	transport start.
 	connection := EcaJsonRpcConnection on: transport.
 	self registerHandlers.

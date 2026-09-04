@@ -5,7 +5,9 @@ Class {
 	#name : 'EcaSettings',
 	#superclass : 'Object',
 	#classVars : [
-		'ServerPath'
+		'ServerPath',
+		'ServerArgs',
+		'PeerPort'
 	],
 	#category : 'ECA-Core-Client',
 	#package : 'ECA-Core',
@@ -33,5 +35,43 @@ EcaSettings class >> settingsOn: aBuilder [
 		target: self;
 		label: 'Server path';
 		description: 'Absolute path to the eca executable. Empty = search $PATH.';
-		default: ''
+		default: ''.
+	(aBuilder setting: #serverArgs)
+		parent: #eca;
+		target: self;
+		label: 'Server extra args';
+		description: 'Extra arguments appended to `eca server`, e.g. --verbose for debug logging (visible via ECA > Inspect Server Log). Takes effect on server restart.';
+		default: ''.
+	(aBuilder setting: #peerPort)
+		parent: #eca;
+		target: self;
+		label: 'Peer server port';
+		description: 'Port used by ECA > Start Peer Server.';
+		default: 8086.
+	(aBuilder setting: #timeoutMs)
+		parent: #eca;
+		target: EcaPeerSandbox;
+		label: 'Peer sandbox timeout (ms)';
+		description: 'Maximum wall-clock time for one /eval in the peer sandbox.';
+		default: 5000
+]
+
+{ #category : 'accessing' }
+EcaSettings class >> serverArgs [
+	^ ServerArgs ifNil: [ '' ]
+]
+
+{ #category : 'accessing' }
+EcaSettings class >> serverArgs: aString [
+	ServerArgs := aString
+]
+
+{ #category : 'accessing' }
+EcaSettings class >> peerPort [
+	^ PeerPort ifNil: [ 8086 ]
+]
+
+{ #category : 'accessing' }
+EcaSettings class >> peerPort: anInteger [
+	PeerPort := anInteger
 ]

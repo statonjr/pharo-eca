@@ -24,17 +24,6 @@ Class {
 	#tag : 'Presenters'
 }
 
-{ #category : 'world menu' }
-EcaChatPresenter class >> menuCommandOn: aBuilder [
-	<worldMenu>
-	(aBuilder item: #'ECA Chat')
-		parent: #Tools;
-		order: 30;
-		action: [ self open ];
-		iconName: #smallTalk;
-		help: 'AI pair programming via ECA'
-]
-
 { #category : 'instance creation' }
 EcaChatPresenter class >> open [
 	| client presenter |
