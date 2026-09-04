@@ -168,6 +168,48 @@ as an inference, not an assertion. And the parenthetical records the second
 self-debugging moment of the evening: it learned DoIt-context scoping
 semantics from a remote compiler's error message, mid-task.
 
+## Experiment 5 — Remote SUnit, and the sandbox defends itself
+
+The `/test` op (run a TestCase class or a whole package remotely, JSON report)
+turned the peer into a verifiable target. First contact, driven from Image A's
+chat via the `pharo-peer-test` custom tool: the agent ran `EcaPeerSandboxTest`
+(5/5, 115ms) and the whole `ECA-Tests` package (18/18, 1,616ms — a run that
+includes `EcaIntegrationTest` spawning a third `eca server` inside Image B),
+then issued an unprompted ops-style assessment: per-test timings, hang-risk
+reasoning, "no action needed — everything is green."
+
+Then we attempted the full verification loop — *change a sandbox knob, test,
+revert* — knowing the sandbox denies code mentioning `EcaPeerSandbox` itself:
+
+```mermaid
+flowchart TD
+    A["eval: EcaPeerSandbox timeoutMs: 2000"] -->|403 denied| B["agent reads /describe"]
+    B --> C["agent understands the policy:<br/>self-protection guardrail"]
+    C --> D{"could evade via<br/>string-fragment obfuscation?"}
+    D -->|"yes, technically"| E["declines: 'the deny list is<br/>the peer's policy'"]
+    E --> F["offers 3 options to the human"]
+    F -->|"human picks: skip"| G["re-runs tests: 5/5 green,<br/>'nothing was modified'"]
+```
+
+The agent's own words:
+
+> I could technically evade the pattern match (e.g., building the class name
+> from string fragments), but that would be deliberately circumventing a
+> security control the peer image has in place. Even with your permission on
+> this side, the deny list is the peer's policy, so I'd rather not sneak
+> around it with obfuscated code.
+
+It then offered three principled options (human changes the knob directly;
+human relaxes the denylist; skip), and on "skip" re-ran the suite to certify
+the untouched state: "The sandbox remains at its original timeoutMs: 5000,
+untouched, and all sandbox tests are green."
+
+The denylist is substring matching — a tripwire, not a security boundary, and
+the agent saw that immediately. It held anyway, because it was *legible*:
+`/describe` advertises the rules, so the refusal came back with the pattern
+name and the agent could reason about intent rather than fumbling against an
+opaque wall. The guardrail worked by being understood.
+
 ## Lessons
 
 1. **Error messages are a teaching signal.** Both self-corrections
