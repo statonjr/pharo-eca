@@ -1,7 +1,9 @@
 "
-A poor man's nREPL for Pharo: a minimal Zinc HTTP endpoint that lets a peer
-image (or an ECA agent wielding curl) evaluate expressions and inspect this
-image. Ops, nREPL-style:
+A minimal Zinc HTTP endpoint that lets a peer image (or an ECA agent
+wielding curl) evaluate expressions and inspect this image. The op model
+(describe/eval) is inspired by nREPL (https://spec.nrepl.org/), but this
+is plain HTTP — not the nREPL wire protocol (no bencode, no sessions, no
+middleware); nREPL clients cannot connect. Ops:
 
 	GET  /describe        image info + available ops (JSON)
 	GET  /classes?q=Str   class names matching a substring (text, max 100)

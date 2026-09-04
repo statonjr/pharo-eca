@@ -5,7 +5,9 @@ LLMs, and a human with an Approve button.*
 
 This document records the first working experiments in driving one live Pharo
 image from another image's ECA chat, using `EcaPeerServer` — a deliberately
-tiny, nREPL-flavored HTTP endpoint — instead of MCP. The transcripts are
+tiny HTTP endpoint borrowing the op model of
+[nREPL](https://spec.nrepl.org/) (though not its wire protocol: plain HTTP,
+no bencode) — instead of MCP. The transcripts are
 verbatim where quoted; commentary is ours.
 
 ## Motivation

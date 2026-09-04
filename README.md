@@ -99,9 +99,12 @@ See [docs/peer-experiments.md](docs/peer-experiments.md) for the full
 experiment log — including the ouroboros run where an image received a
 description of itself through a second image's compiler.
 
-`EcaPeerServer` is a deliberately tiny, nREPL-flavored HTTP endpoint (Zinc,
-loopback-only) that lets one image be driven by another image's ECA agent —
-no MCP required, the "protocol" fits in a sentence of prompt.
+`EcaPeerServer` is a deliberately tiny HTTP endpoint (Zinc, loopback-only)
+that lets one image be driven by another image's ECA agent — no MCP required,
+the "protocol" fits in a sentence of prompt. It borrows the *op model*
+(describe/eval) of [nREPL](https://spec.nrepl.org/) as inspiration only:
+this is plain HTTP, not the nREPL wire protocol — curl works, nREPL clients
+don't. (Actual nREPL support is on the roadmap, pending user feedback.)
 
 In the image to be driven (Image B):
 
