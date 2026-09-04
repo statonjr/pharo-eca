@@ -36,6 +36,31 @@ EcaPeerServer class >> startOn: aPort [
 	^ Default := self new startOn: aPort
 ]
 
+{ #category : 'accessing' }
+EcaPeerServer class >> default [
+	^ Default
+]
+
+{ #category : 'port probing' }
+EcaPeerServer class >> isPortAvailable: aPort [
+	"Probe by binding a listen socket and releasing it immediately."
+
+	^ [ (ZnNetworkingUtils serverSocketOn: aPort) destroy. true ]
+		on: Error
+		do: [ :e | false ]
+]
+
+{ #category : 'port probing' }
+EcaPeerServer class >> availablePortFrom: aPort [
+	"Answer aPort when free, else walk upward (another image's peer is
+	 likely squatting the default). Signal EcaError when the range is full."
+
+	aPort to: aPort + 9 do: [ :candidate |
+		(self isPortAvailable: candidate) ifTrue: [ ^ candidate ] ].
+	^ EcaError signal: 'No free port between ' , aPort asString
+		, ' and ' , (aPort + 9) asString
+]
+
 { #category : 'lifecycle' }
 EcaPeerServer class >> stop [
 	Default ifNotNil: [ :s | s stop ].
@@ -44,8 +69,11 @@ EcaPeerServer class >> stop [
 
 { #category : 'lifecycle' }
 EcaPeerServer >> startOn: aPort [
-	port := aPort.
-	server := (ZnServer on: aPort)
+	"Bind the requested port, or the next free one when it is taken —
+	 a bare start would fail later, invisibly, in the forked listen loop."
+
+	port := self class availablePortFrom: aPort.
+	server := (ZnServer on: port)
 		bindingAddress: NetNameResolver loopBackAddress;
 		yourself.
 	server delegate: self.
@@ -121,6 +149,7 @@ EcaPeerServer >> handleDescribe: request [
 	| info |
 	info := Dictionary new
 		at: 'server' put: 'eca-peer';
+		at: 'port' put: port;
 		at: 'image' put: Smalltalk image imageDirectory basename;
 		at: 'pharo' put: SystemVersion current version;
 		at: 'ops' put: #( 'describe' 'classes' 'eval' 'test' );

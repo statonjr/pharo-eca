@@ -79,9 +79,14 @@ EcaWorldMenu class >> startPeerOn: aBuilder [
 		iconName: #smallWindow;
 		help: 'Serve /describe, /classes, /eval (sandboxed) and /test on the configured port';
 		action: [
-			EcaPeerServer startOn: EcaSettings peerPort.
+			| peer |
+			peer := EcaPeerServer startOn: EcaSettings peerPort.
 			UIManager default inform:
-				'Peer server on port ' , EcaSettings peerPort asString ]
+				'Peer server on port ' , peer port asString
+				, (peer port = EcaSettings peerPort
+					ifTrue: [ '' ]
+					ifFalse: [ ' (configured port '
+						, EcaSettings peerPort asString , ' was busy)' ]) ]
 ]
 
 { #category : 'world menu' }
