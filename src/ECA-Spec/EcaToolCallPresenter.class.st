@@ -12,6 +12,7 @@ Class {
 		'toolCall',
 		'detailsText',
 		'approveButton',
+		'alwaysAllowButton',
 		'rejectButton'
 	],
 	#category : 'ECA-Spec-Presenters',
@@ -55,6 +56,13 @@ EcaToolCallPresenter >> initializePresenters [
 			client approveToolCall: toolCall toolCallId inChat: chatId.
 			self window close ];
 		yourself.
+	alwaysAllowButton := self newButton
+		label: 'Always Allow';
+		help: 'Approve and remember for this session (for shell/git tools, remembers this specific command)';
+		action: [
+			client approveToolCall: toolCall toolCallId inChat: chatId save: 'session'.
+			self window close ];
+		yourself.
 	rejectButton := self newButton
 		label: 'Reject';
 		action: [
@@ -69,6 +77,7 @@ EcaToolCallPresenter >> defaultLayout [
 		add: detailsText;
 		add: (SpBoxLayout newLeftToRight
 				add: approveButton;
+				add: alwaysAllowButton;
 				add: rejectButton;
 				yourself)
 			expand: false;

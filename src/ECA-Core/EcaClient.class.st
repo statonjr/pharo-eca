@@ -151,14 +151,21 @@ EcaClient >> queryCommands: aString inChat: chatIdOrNil [
 
 { #category : 'api - tools' }
 EcaClient >> approveToolCall: toolCallId inChat: chatId [
-	"Notification per protocol (no id, no response)."
+	self approveToolCall: toolCallId inChat: chatId save: nil
+]
 
-	connection
-		sendNotification: 'chat/toolCallApprove'
-		params: (Dictionary new
-			at: 'chatId' put: chatId;
-			at: 'toolCallId' put: toolCallId;
-			yourself)
+{ #category : 'api - tools' }
+EcaClient >> approveToolCall: toolCallId inChat: chatId save: aScopeOrNil [
+	"Notification per protocol (no id, no response). aScopeOrNil may be
+	 'session': the server then remembers the approval (for shell/git
+	 tools, the specific approved command) for the rest of the session."
+
+	| params |
+	params := Dictionary new.
+	params at: 'chatId' put: chatId.
+	params at: 'toolCallId' put: toolCallId.
+	aScopeOrNil ifNotNil: [ params at: 'save' put: aScopeOrNil ].
+	connection sendNotification: 'chat/toolCallApprove' params: params
 ]
 
 { #category : 'api - tools' }
