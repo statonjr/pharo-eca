@@ -128,7 +128,31 @@ EcaChatPresenter >> updateTranscriptWith: aChat [
 			(EcaToolCallPresenter on: client)
 				chatId: aChat id;
 				toolCall: block;
-				open ] ]
+				open ] ].
+	self updateTitleFrom: aChat
+]
+
+{ #category : 'updating' }
+EcaChatPresenter >> updateTitleFrom: aChat [
+	"Surface the latest usage block (tokens/cost) in the window title.
+	 Key names are looked up tolerantly across protocol versions."
+
+	| usage parts |
+	usage := (aChat contents reversed
+		detect: [ :block | block type = 'usage' ]
+		ifNone: [ ^ self ]) raw.
+	parts := OrderedCollection new.
+	(#( 'sessionTokens' 'totalTokens' )
+		detect: [ :key | usage includesKey: key ]
+		ifNone: [ nil ])
+		ifNotNil: [ :key | parts add: (usage at: key) asString , ' tokens' ].
+	(#( 'sessionCost' 'totalCost' 'lastMessageCost' 'messageCost' )
+		detect: [ :key | usage includesKey: key ]
+		ifNone: [ nil ])
+		ifNotNil: [ :key | parts add: '$' , (usage at: key) asString ].
+	parts isEmpty ifTrue: [ ^ self ].
+	self window ifNotNil: [ :w |
+		w title: 'ECA Chat — ' , (' · ' join: parts) ]
 ]
 
 { #category : 'updating' }
