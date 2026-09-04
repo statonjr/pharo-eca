@@ -1,0 +1,115 @@
+"
+A poor man's nREPL for Pharo: a minimal Zinc HTTP endpoint that lets a peer
+image (or an ECA agent wielding curl) evaluate expressions and inspect this
+image. Ops, nREPL-style:
+
+	GET  /describe        image info + available ops (JSON)
+	GET  /classes?q=Str   class names matching a substring (text, max 100)
+	POST /eval            body = Smalltalk source, answers printString
+
+Binds to loopback only. /eval executes arbitrary code by design — the safety
+gate is the *driving* side's ECA tool approval, plus this server being
+localhost-only and explicitly started. Consider sandboxing before exposing
+anything beyond experiments.
+
+	EcaPeerServer startOn: 8086.
+	EcaPeerServer stop.
+"
+Class {
+	#name : 'EcaPeerServer',
+	#superclass : 'Object',
+	#instVars : [
+		'server',
+		'port'
+	],
+	#classVars : [
+		'Default'
+	],
+	#category : 'ECA-Core-Peer',
+	#package : 'ECA-Core',
+	#tag : 'Peer'
+}
+
+{ #category : 'lifecycle' }
+EcaPeerServer class >> startOn: aPort [
+	Default ifNotNil: [ :s | s stop ].
+	^ Default := self new startOn: aPort
+]
+
+{ #category : 'lifecycle' }
+EcaPeerServer class >> stop [
+	Default ifNotNil: [ :s | s stop ].
+	Default := nil
+]
+
+{ #category : 'lifecycle' }
+EcaPeerServer >> startOn: aPort [
+	port := aPort.
+	server := (ZnServer on: aPort)
+		bindingAddress: NetNameResolver loopBackAddress;
+		yourself.
+	server delegate: self.
+	server start.
+	^ self
+]
+
+{ #category : 'lifecycle' }
+EcaPeerServer >> stop [
+	server ifNotNil: [ :s | [ s stop ] on: Error do: [ :e | ] ].
+	server := nil
+]
+
+{ #category : 'accessing' }
+EcaPeerServer >> port [
+	^ port
+]
+
+{ #category : 'request handling' }
+EcaPeerServer >> handleRequest: request [
+	| path |
+	path := request uri path.
+	path = '/eval' ifTrue: [ ^ self handleEval: request ].
+	path = '/describe' ifTrue: [ ^ self handleDescribe: request ].
+	path = '/classes' ifTrue: [ ^ self handleClasses: request ].
+	^ ZnResponse notFound: request uri
+]
+
+{ #category : 'request handling' }
+EcaPeerServer >> handleEval: request [
+	| source result |
+	request method = #POST ifFalse: [
+		^ ZnResponse badRequest: request ].
+	source := request contents.
+	^ [
+		result := Smalltalk compiler evaluate: source.
+		ZnResponse ok: (ZnEntity text: result printString) ]
+		on: Error
+		do: [ :e | ZnResponse serverError: e class name , ': ' , e messageText ]
+]
+
+{ #category : 'request handling' }
+EcaPeerServer >> handleDescribe: request [
+	| info |
+	info := Dictionary new
+		at: 'server' put: 'eca-peer';
+		at: 'image' put: Smalltalk image imageDirectory basename;
+		at: 'pharo' put: SystemVersion current version;
+		at: 'ops' put: #( 'describe' 'classes' 'eval' );
+		yourself.
+	^ ZnResponse ok: (ZnEntity
+		with: (NeoJSONWriter toString: info)
+		type: ZnMimeType applicationJson)
+]
+
+{ #category : 'request handling' }
+EcaPeerServer >> handleClasses: request [
+	| query names |
+	query := request uri queryAt: 'q' ifAbsent: [ '' ].
+	names := (Smalltalk globals allClassesAndTraits
+		select: [ :each |
+			query isEmpty or: [
+				each name asLowercase includesSubstring: query asLowercase ] ]
+		thenCollect: [ :each | each name ]) asSortedCollection.
+	^ ZnResponse ok: (ZnEntity text:
+		(String cr join: (names asArray first: (names size min: 100))))
+]
