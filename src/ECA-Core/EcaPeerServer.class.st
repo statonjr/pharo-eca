@@ -66,11 +66,14 @@ EcaPeerServer >> port [
 
 { #category : 'request handling' }
 EcaPeerServer >> handleRequest: request [
-	| path |
-	path := request uri path.
-	path = '/eval' ifTrue: [ ^ self handleEval: request ].
-	path = '/describe' ifTrue: [ ^ self handleDescribe: request ].
-	path = '/classes' ifTrue: [ ^ self handleClasses: request ].
+	"Dispatch on the first path segment: ZnUrl>>path leading-slash semantics
+	 vary, firstPathSegment does not."
+
+	| op |
+	op := request uri firstPathSegment.
+	op = 'eval' ifTrue: [ ^ self handleEval: request ].
+	op = 'describe' ifTrue: [ ^ self handleDescribe: request ].
+	op = 'classes' ifTrue: [ ^ self handleClasses: request ].
 	^ ZnResponse notFound: request uri
 ]
 
