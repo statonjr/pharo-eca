@@ -34,10 +34,26 @@ EcaChatPresenter class >> menuCommandOn: aBuilder [
 
 { #category : 'instance creation' }
 EcaChatPresenter class >> open [
-	| client |
+	| client presenter |
 	client := EcaClient default.
 	client isRunning ifFalse: [ client start ].
-	^ (self on: client) open
+	presenter := self on: client.
+	presenter open.
+	^ presenter
+]
+
+{ #category : 'instance creation' }
+EcaChatPresenter class >> openOnClass: aClass [
+	"Open the chat prefilled with a prompt about aClass, including its
+	 Tonel file path when the class lives in an Iceberg repository."
+
+	| presenter context |
+	presenter := self open.
+	context := EcaCalypsoContextExtension contextForClass: aClass.
+	presenter prefill: (context
+		ifNil: [ 'Tell me about the Pharo class ' , aClass name ]
+		ifNotNil: [ 'Explain the Pharo class defined in ' , (context at: 'path') ]).
+	^ presenter
 ]
 
 { #category : 'initialization' }
@@ -94,6 +110,11 @@ EcaChatPresenter >> defaultLayout [
 				yourself)
 			expand: false;
 		yourself
+]
+
+{ #category : 'actions' }
+EcaChatPresenter >> prefill: aString [
+	input text: aString
 ]
 
 { #category : 'actions' }
