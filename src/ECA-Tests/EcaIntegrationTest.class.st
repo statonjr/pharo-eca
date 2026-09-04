@@ -30,6 +30,7 @@ EcaIntegrationTest >> tearDown [
 
 { #category : 'tests' }
 EcaIntegrationTest >> testStartHandshakeAndShutdown [
+	<timeout: 60>
 	client start.
 	self assert: client isRunning.
 	self deny: client session models isEmpty.

@@ -12,7 +12,8 @@ Class {
 		'command',
 		'process',
 		'stderrTailProcess',
-		'stderrLog'
+		'stderrLog',
+		'readAdapter'
 	],
 	#category : 'ECA-Core-Transport',
 	#package : 'ECA-Core',
@@ -45,6 +46,11 @@ EcaSubprocessTransport >> start [
 		redirectStdout;
 		redirectStderr;
 		run.
+	[ process stdinStream binary.
+	  process stdoutStream binary ]
+		on: Error
+		do: [ :e | "streams stay in their default mode" ].
+	readAdapter := EcaPollingReadStream on: process stdoutStream transport: self.
 	self startStderrTail
 ]
 
@@ -52,8 +58,12 @@ EcaSubprocessTransport >> start [
 EcaSubprocessTransport >> startStderrTail [
 	stderrTailProcess := [
 		[ self isRunning ] whileTrue: [
-			process stderrStream upToEnd ifNotEmpty: [ :chunk |
-				self stderrLog nextPutAll: chunk ].
+			| chunk |
+			chunk := [ process stderrStream upToEnd ] on: Error do: [ :e | '' ].
+			chunk isEmptyOrNil ifFalse: [
+				self stderrLog nextPutAll: (chunk isString
+					ifTrue: [ chunk ]
+					ifFalse: [ chunk utf8Decoded ]) ].
 			(Delay forMilliseconds: 200) wait ] ]
 			forkAt: Processor systemBackgroundPriority
 			named: 'eca stderr tail'
@@ -63,7 +73,8 @@ EcaSubprocessTransport >> startStderrTail [
 EcaSubprocessTransport >> stop [
 	stderrTailProcess ifNotNil: [ :p | p terminate ].
 	process ifNotNil: [ :p | [ p terminate ] on: Error do: [ :e | ] ].
-	process := nil
+	process := nil.
+	readAdapter := nil
 ]
 
 { #category : 'testing' }
@@ -73,7 +84,7 @@ EcaSubprocessTransport >> isRunning [
 
 { #category : 'accessing' }
 EcaSubprocessTransport >> binaryReadStream [
-	^ process stdoutStream
+	^ readAdapter
 ]
 
 { #category : 'accessing' }
