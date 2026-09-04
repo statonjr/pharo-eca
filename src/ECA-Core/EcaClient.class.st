@@ -50,6 +50,7 @@ EcaClient >> start [
 	transport start.
 	connection := EcaJsonRpcConnection on: transport.
 	self registerHandlers.
+	EcaIcebergSync installOn: self session.
 	connection start.
 	initResult := connection
 		sendRequest: 'initialize'
