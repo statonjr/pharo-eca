@@ -110,14 +110,18 @@ EcaClient >> registerHandlers [
 
 { #category : 'api - chat' }
 EcaClient >> prompt: aString inChat: chatIdOrNil [
-	^ connection
-		sendRequest: 'chat/prompt'
-		params: (Dictionary new
-			at: 'chatId' put: chatIdOrNil;
-			at: 'message' put: aString;
-			at: 'model' put: self session selectedModel;
-			yourself)
-		timeout: 5 minutes
+	"Omit optional keys entirely when absent: the server rejects blank/null
+	 chat ids (it mints one and returns it when the field is omitted)."
+
+	| params |
+	params := Dictionary new.
+	params at: 'message' put: aString.
+	chatIdOrNil ifNotNil: [ params at: 'chatId' put: chatIdOrNil ].
+	self session selectedModel ifNotNil: [ :model |
+		params at: 'model' put: model ].
+	self session selectedAgent ifNotNil: [ :agent |
+		params at: 'agent' put: agent ].
+	^ connection sendRequest: 'chat/prompt' params: params timeout: 5 minutes
 ]
 
 { #category : 'api - chat' }

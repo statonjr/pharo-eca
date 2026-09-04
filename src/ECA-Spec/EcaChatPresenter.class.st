@@ -101,9 +101,15 @@ EcaChatPresenter >> sendPrompt [
 	text ifEmpty: [ ^ self ].
 	input text: ''.
 	client session selectedModel: modelList selectedItem.
+	[
 	[ | result |
 	result := client prompt: text inChat: chatId.
 	chatId ifNil: [ chatId := result at: 'chatId' ifAbsent: [ nil ] ] ]
+		on: Error
+		do: [ :e |
+			UIManager default defer: [
+				transcript text: transcript text asString
+					, String cr , '[error] ' , e messageText ] ] ]
 		forkAt: Processor userBackgroundPriority
 		named: 'eca prompt'
 ]
