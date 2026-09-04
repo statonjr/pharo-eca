@@ -124,6 +124,10 @@ EcaPeerServer >> handleDescribe: request [
 		at: 'image' put: Smalltalk image imageDirectory basename;
 		at: 'pharo' put: SystemVersion current version;
 		at: 'ops' put: #( 'describe' 'classes' 'eval' 'test' );
+		at: 'sandbox' put: (Dictionary new
+			at: 'timeoutMs' put: EcaPeerSandbox timeoutMs;
+			at: 'denied' put: EcaPeerSandbox deniedPatterns asArray;
+			yourself);
 		yourself.
 	^ ZnResponse ok: (ZnEntity
 		with: (NeoJSONWriter toString: info)
@@ -140,8 +144,5 @@ EcaPeerServer >> handleClasses: request [
 				each name asLowercase includesSubstring: query asLowercase ] ]
 		thenCollect: [ :each | each name ]) asSortedCollection.
 	^ ZnResponse ok: (ZnEntity text:
-		(String cr join: (names asArray first: (names size min: 100))))
-]
-y text:
 		(String cr join: (names asArray first: (names size min: 100))))
 ]
