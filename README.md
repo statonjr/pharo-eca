@@ -45,9 +45,46 @@ EcaClient default start.        "spawn eca server + initialize handshake"
 EcaChatPresenter open.          "open the chat window (World menu > ECA Chat)"
 ```
 
-Type your prompt and press Send. Use `@` to attach context and `/` for commands.
-Tool calls that modify files ask for approval; edits to Tonel `.st` files offer an
-Iceberg reload so the image stays in sync.
+Type your prompt and press Enter (or Send). Features:
+
+- **Streaming chat** with Microdown-rendered markdown and reasoning indicators
+- **`@` context completion** — pause after `@token` for a chooser backed by
+  `chat/queryContext`; chosen contexts ride along with your next prompt
+- **`/` command completion** — `/login`, `/config`, `/doctor`, `/resume`, …
+- **Tool-call approval** — dialogs for gated tools (shell, file edits), with
+  status lines (`-> tool (awaiting approval)`, `ok tool`, `rejected tool`)
+- **Session tokens/cost** in the window title
+- **Calypso integration** — right-click a class → *Ask ECA about this class*
+- Model selector fed live from `config/updated`; Stop button for running prompts
+
+## Image-to-image communication
+
+`EcaPeerServer` is a deliberately tiny, nREPL-flavored HTTP endpoint (Zinc,
+loopback-only) that lets one image be driven by another image's ECA agent —
+no MCP required, the "protocol" fits in a sentence of prompt.
+
+In the image to be driven (Image B):
+
+```smalltalk
+EcaPeerServer startOn: 8086.    "EcaPeerServer stop. to shut down"
+```
+
+Ops: `GET /describe` (JSON: image info + ops), `GET /classes?q=Substring`
+(matching class names), `POST /eval` (raw Smalltalk source → `printString`).
+
+Then, in the driving image's ECA chat, a prompt like:
+
+> There's another Pharo image listening on localhost:8086. GET /describe
+> returns JSON about it, GET /classes?q=Substring searches its class names,
+> and POST /eval with Smalltalk source in the body (use `--data-binary` and
+> `Content-Type: text/plain`) evaluates it and returns the result. Find out
+> which image it is, then evaluate `Smalltalk globals allClasses size` in it.
+
+The agent drives Image B through approved `shell_command`/curl tool calls.
+Every evaluation passes through the driving side's ECA approval gate; the
+endpoint binds to loopback only and must be started explicitly. `/eval`
+executes arbitrary code by design — keep it to experiments, or sandbox it
+before anything more.
 
 ## Architecture
 
