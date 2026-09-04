@@ -143,8 +143,28 @@ EcaChatPresenter >> render: aBlock on: aStream [
 	type := aBlock type.
 	type = 'reasonStarted' ifTrue: [ ^ aStream cr; nextPutAll: '… thinking' ].
 	type = 'reasonFinished' ifTrue: [ ^ aStream nextPutAll: ' done.'; cr ].
-	(#( 'reasonText' 'progress' 'metadata' 'usage' ) includes: type)
+	(#( 'reasonText' 'progress' 'metadata' 'usage'
+	    'toolCallPrepare' 'toolCallRunning' ) includes: type)
 		ifTrue: [ ^ self ].
+	type = 'toolCallRun' ifTrue: [
+		^ aStream
+			cr;
+			nextPutAll: '-> ';
+			nextPutAll: (aBlock raw at: 'name' ifAbsent: [ 'tool' ]);
+			nextPutAll: (aBlock isToolCallAwaitingApproval
+					ifTrue: [ ' (awaiting approval)' ]
+					ifFalse: [ '' ]);
+			cr ].
+	type = 'toolCalled' ifTrue: [
+		^ aStream
+			nextPutAll: 'ok ';
+			nextPutAll: (aBlock raw at: 'name' ifAbsent: [ 'tool' ]);
+			cr ].
+	type = 'toolCallRejected' ifTrue: [
+		^ aStream
+			nextPutAll: 'rejected ';
+			nextPutAll: (aBlock raw at: 'name' ifAbsent: [ 'tool' ]);
+			cr ].
 	aStream
 		nextPutAll: '[';
 		nextPutAll: type;
