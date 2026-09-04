@@ -40,9 +40,22 @@ Metacello new
 
 ## Usage
 
+Everything lives under the **ECA** entry in the World menu:
+
+| Menu item | What it does |
+| --- | --- |
+| Open Chat | Starts the eca server if needed and opens the chat window |
+| MCP Servers | Live table of MCP server statuses |
+| Restart ECA Server | Kill and respawn the server (picks up config changes) |
+| Inspect Server Log | The server's stderr — first stop when debugging |
+| Start / Stop Peer Server | Image-to-image endpoint on the configured port |
+| ECA Settings | Server path, extra args (e.g. `--verbose`), peer port, sandbox timeout |
+
+Headless or scripted use works too:
+
 ```smalltalk
 EcaClient default start.        "spawn eca server + initialize handshake"
-EcaChatPresenter open.          "open the chat window (World menu > ECA Chat)"
+EcaChatPresenter open.          "open the chat window"
 ```
 
 Type your prompt and press Enter (or Send). Features:
@@ -56,6 +69,29 @@ Type your prompt and press Enter (or Send). Features:
 - **Session tokens/cost** in the window title
 - **Calypso integration** — right-click a class → *Ask ECA about this class*
 - Model selector fed live from `config/updated`; Stop button for running prompts
+
+### Things to try
+
+First prompts for a new user — all verified working:
+
+1. **`Hello!`** — sanity check; watch the reasoning indicator and streamed reply.
+2. **`Run the shell command date and tell me the output.`** — your first
+   tool-call approval dialog. Run it twice: click **Always Allow** the first
+   time and note the second run skips the dialog (per-command session memory).
+3. **`/doctor`** — provider/model health report; `/config` and `/login` also
+   work via `/` completion.
+4. **`@`** then pause — context completion. Pick a file, then ask
+   *"summarize that file"* — answered from context, no tool call needed.
+5. **Peer demo** (needs a second image running *ECA → Start Peer Server*):
+   *"Using pharo-peer-eval on port 8086, evaluate `Smalltalk globals
+   allClasses size` and tell me how many classes the peer has."*
+6. **Remote tests:** *"Using pharo-peer-test on port 8086, run the test class
+   EcaJsonRpcFramerTest in the peer and summarize the result."*
+7. **The self-recognition finale** (peer running in *this* image's port):
+   *"Use pharo-peer-eval on port 8087 to evaluate `Smalltalk image
+   imageDirectory basename`. Separately, tell me the name of the current
+   workspace's image directory. Do they match?"* — see
+   [docs/peer-experiments.md](docs/peer-experiments.md) for why this phrasing.
 
 ## Image-to-image communication
 
