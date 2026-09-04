@@ -63,13 +63,17 @@ EcaChatPresenter >> initializePresenters [
 		label: 'Stop';
 		action: [ client stopPrompt: chatId ];
 		yourself.
+	"Announcements fire on the background JSON-RPC reader process:
+	 route all widget mutations through the UI process (ChatPharo idiom)."
 	client session announcer
 		when: EcaChatContentAdded
-		do: [ :ann | self updateTranscriptWith: ann chat ]
+		do: [ :ann |
+			UIManager default defer: [ self updateTranscriptWith: ann chat ] ]
 		for: self.
 	client session announcer
 		when: EcaSessionChanged
-		do: [ :ann | modelList items: client session models ]
+		do: [ :ann |
+			UIManager default defer: [ modelList items: client session models ] ]
 		for: self
 ]
 
