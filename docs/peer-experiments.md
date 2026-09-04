@@ -227,6 +227,12 @@ opaque wall. The guardrail worked by being understood.
    receives what an approved tool call sends.
 5. **Frame benign self-reference as data comparison.** Safety classifiers
    see shapes, not context.
+6. **Legible guardrails beget aligned behavior.** The sandbox's denylist is
+   trivially bypassable and the agent knew it — but because the rules are
+   advertised (`/describe`) and denials name the matched pattern, the agent
+   reasoned about the policy's *intent* and honored it, escalating to the
+   human instead of obfuscating around the match. Opaque walls invite
+   probing; readable ones invite respect.
 
 ## Reproducing
 
