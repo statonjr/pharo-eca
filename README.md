@@ -59,6 +59,10 @@ Type your prompt and press Enter (or Send). Features:
 
 ## Image-to-image communication
 
+See [docs/peer-experiments.md](docs/peer-experiments.md) for the full
+experiment log — including the ouroboros run where an image received a
+description of itself through a second image's compiler.
+
 `EcaPeerServer` is a deliberately tiny, nREPL-flavored HTTP endpoint (Zinc,
 loopback-only) that lets one image be driven by another image's ECA agent —
 no MCP required, the "protocol" fits in a sentence of prompt.
