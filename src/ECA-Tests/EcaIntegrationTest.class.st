@@ -33,6 +33,17 @@ EcaIntegrationTest >> testStartHandshakeAndShutdown [
 	<timeout: 60>
 	client start.
 	self assert: client isRunning.
+	"Models arrive asynchronously via config/updated after the initialized
+	 notification (the server first syncs with models.dev), so wait for them."
+	self waitUpTo: 30 seconds for: [ client session models isNotEmpty ].
 	self deny: client session models isEmpty.
 	client stopGracefully
+]
+
+{ #category : 'private' }
+EcaIntegrationTest >> waitUpTo: aDuration for: aBlock [
+	| deadline |
+	deadline := DateAndTime now + aDuration.
+	[ aBlock value or: [ DateAndTime now > deadline ] ]
+		whileFalse: [ (Delay forMilliseconds: 200) wait ]
 ]

@@ -89,9 +89,18 @@ EcaSession >> updateFromInitialize: aResult [
 
 { #category : 'updating' }
 EcaSession >> configUpdated: params [
+	"Since ECA 0.42.0 models/agents arrive here (async, after initialized),
+	 not in the initialize response. Field names use the select* convention."
+
 	(params at: 'chat' ifAbsent: [ nil ]) ifNotNil: [ :chatConfig |
 		models := chatConfig at: 'models' ifAbsent: [ models ].
-		selectedModel := chatConfig at: 'selectModel' ifAbsent: [ selectedModel ] ].
+		selectedModel := chatConfig at: 'selectModel' ifAbsent: [ selectedModel ].
+		agents := chatConfig
+			at: 'agents'
+			ifAbsent: [ chatConfig at: 'behaviors' ifAbsent: [ agents ] ].
+		selectedAgent := chatConfig
+			at: 'selectAgent'
+			ifAbsent: [ chatConfig at: 'selectBehavior' ifAbsent: [ selectedAgent ] ] ].
 	self announcer announce: EcaSessionChanged new
 ]
 
