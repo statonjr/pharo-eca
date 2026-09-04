@@ -86,9 +86,14 @@ Then, in the driving image's ECA chat, a prompt like:
 
 The agent drives Image B through approved `shell_command`/curl tool calls.
 Every evaluation passes through the driving side's ECA approval gate; the
-endpoint binds to loopback only and must be started explicitly. `/eval`
-executes arbitrary code by design — keep it to experiments, or sandbox it
-before anything more.
+endpoint binds to loopback only and must be started explicitly.
+
+`/eval` is guarded by `EcaPeerSandbox`: a substring denylist (process
+spawning, FFI, `become:`, image snapshot/exit, and the peer machinery
+itself) plus a 5s evaluation timeout, both class-side configurable. The
+sandbox advertises its rules in `/describe` so driving agents learn the
+limits up front. It is a tripwire against accidents, not a security
+boundary — approval on the driving side remains the real gate.
 
 ### Custom tools (recommended)
 

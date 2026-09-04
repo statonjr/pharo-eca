@@ -79,15 +79,18 @@ EcaPeerServer >> handleRequest: request [
 
 { #category : 'request handling' }
 EcaPeerServer >> handleEval: request [
-	| source result |
+	| result |
 	request method = #POST ifFalse: [
 		^ ZnResponse badRequest: request ].
-	source := request contents.
-	^ [
-		result := Smalltalk compiler evaluate: source.
-		ZnResponse ok: (ZnEntity text: result printString) ]
-		on: Error
-		do: [ :e | ZnResponse serverError: e class name , ': ' , e messageText ]
+	result := EcaPeerSandbox evaluate: request contents.
+	result isOk ifTrue: [
+		^ ZnResponse ok: (ZnEntity text: result value) ].
+	result isDenied ifTrue: [
+		^ ZnResponse new
+			statusLine: (ZnStatusLine code: 403);
+			entity: (ZnEntity text: result message);
+			yourself ].
+	^ ZnResponse serverError: result message
 ]
 
 { #category : 'request handling' }
@@ -114,5 +117,8 @@ EcaPeerServer >> handleClasses: request [
 				each name asLowercase includesSubstring: query asLowercase ] ]
 		thenCollect: [ :each | each name ]) asSortedCollection.
 	^ ZnResponse ok: (ZnEntity text:
+		(String cr join: (names asArray first: (names size min: 100))))
+]
+y text:
 		(String cr join: (names asArray first: (names size min: 100))))
 ]
