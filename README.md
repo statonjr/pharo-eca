@@ -86,6 +86,36 @@ endpoint binds to loopback only and must be started explicitly. `/eval`
 executes arbitrary code by design — keep it to experiments, or sandbox it
 before anything more.
 
+### Custom tools (recommended)
+
+[`.eca/config.json`](.eca/config.json) in this repo defines `pharo-peer-eval`
+and `pharo-peer-classes` as [ECA custom tools](https://eca.dev/config/tools/),
+so the LLM gets typed, named tools instead of improvising curl (the source is
+passed via a quoted heredoc, sidestepping shell-quoting bugs). Picked up
+automatically when this repo is one of your ECA workspace folders; copy the
+`customTools` stanza into `~/.config/eca/config.json` to have it everywhere.
+Then the driving prompt shrinks to:
+
+> Using pharo-peer-eval (port 8086), find out how many classes the peer
+> image has loaded.
+
+To auto-deny dangerous evaluations while auto-approving the rest, add:
+
+```json
+{
+  "toolCall": {
+    "approval": {
+      "allow": { "pharo-peer-classes": {} },
+      "deny": {
+        "pharo-peer-eval": {
+          "argsMatchers": { "code": [ ".*become:.*", ".*Smalltalk snapshot.*" ] }
+        }
+      }
+    }
+  }
+}
+```
+
 ## Architecture
 
 | Package | Responsibility |

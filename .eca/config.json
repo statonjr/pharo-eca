@@ -1,0 +1,38 @@
+{
+  "customTools": {
+    "pharo-peer-eval": {
+      "description": "Evaluate Smalltalk source in a peer Pharo image running EcaPeerServer and return the result's printString. The default peer listens on port 8086. Fails with the compiler error text when the source does not parse or raises.",
+      "command": "read -r -d '' ST_PAYLOAD << 'EcaPeerHeredoc' || true\n{{code}}\nEcaPeerHeredoc\nprintf '%s' \"$ST_PAYLOAD\" | curl -s --fail-with-body --data-binary @- -H 'Content-Type: text/plain' \"localhost:{{port}}/eval\"",
+      "schema": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Smalltalk expression(s) to evaluate in the peer image, e.g. '3 + 4' or 'Smalltalk globals allClasses size'."
+          },
+          "port": {
+            "type": "integer",
+            "description": "The peer server port. Use 8086 unless told otherwise."
+          }
+        },
+        "required": ["code", "port"]
+      }
+    },
+    "pharo-peer-classes": {
+      "description": "Search class names in a peer Pharo image running EcaPeerServer (substring match, max 100 results, one per line). The default peer listens on port 8086.",
+      "command": "curl -s --fail-with-body \"localhost:{{port}}/classes?q={{query}}\"",
+      "schema": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Substring to match against class names, e.g. 'ZnServer'."
+          },
+          "port": {
+            "type": "integer",
+            "description": "The peer server port. Use 8086 unless told otherwise."
+          }
+        },
+        "required": ["query", "port"]
+      }
+    }
+  }
+}
