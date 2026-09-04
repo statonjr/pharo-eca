@@ -13,7 +13,8 @@ Class {
 		'input',
 		'modelList',
 		'sendButton',
-		'stopButton'
+		'stopButton',
+		'approvalsSeen'
 	],
 	#category : 'ECA-Spec-Presenters',
 	#package : 'ECA-Spec',
@@ -118,20 +119,42 @@ EcaChatPresenter >> sendPrompt [
 EcaChatPresenter >> updateTranscriptWith: aChat [
 	chatId = aChat id ifFalse: [ chatId ifNotNil: [ ^ self ] ].
 	transcript text: (String streamContents: [ :s |
-		aChat contents do: [ :block |
-			block isText
-				ifTrue: [ s nextPutAll: block text ]
-				ifFalse: [
-					s
-						nextPutAll: '[';
-						nextPutAll: block type;
-						nextPutAll: ']';
-						cr.
-					block isToolCallAwaitingApproval ifTrue: [
-						(EcaToolCallPresenter on: client)
-							chatId: aChat id;
-							toolCall: block;
-							open ] ] ] ])
+		aChat contents do: [ :block | self render: block on: s ] ]).
+	"Open the approval dialog once per tool call, not once per re-render."
+	aChat pendingToolCalls do: [ :block |
+		(self approvalsSeen includes: block toolCallId) ifFalse: [
+			self approvalsSeen add: block toolCallId.
+			(EcaToolCallPresenter on: client)
+				chatId: aChat id;
+				toolCall: block;
+				open ] ]
+]
+
+{ #category : 'updating' }
+EcaChatPresenter >> render: aBlock on: aStream [
+	"Text streams inline (user turns prefixed); reasoning collapses to a
+	 thinking marker; bookkeeping blocks (progress/metadata/usage) are
+	 hidden so they cannot interleave mid-word with text deltas."
+
+	| type |
+	aBlock isText ifTrue: [
+		aBlock role = 'user' ifTrue: [ aStream cr; nextPutAll: '> ' ].
+		^ aStream nextPutAll: aBlock text ].
+	type := aBlock type.
+	type = 'reasonStarted' ifTrue: [ ^ aStream cr; nextPutAll: '… thinking' ].
+	type = 'reasonFinished' ifTrue: [ ^ aStream nextPutAll: ' done.'; cr ].
+	(#( 'reasonText' 'progress' 'metadata' 'usage' ) includes: type)
+		ifTrue: [ ^ self ].
+	aStream
+		nextPutAll: '[';
+		nextPutAll: type;
+		nextPutAll: ']';
+		cr
+]
+
+{ #category : 'accessing' }
+EcaChatPresenter >> approvalsSeen [
+	^ approvalsSeen ifNil: [ approvalsSeen := Set new ]
 ]
 
 { #category : 'initialization' }
