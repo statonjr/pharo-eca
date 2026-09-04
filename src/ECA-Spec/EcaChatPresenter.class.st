@@ -52,6 +52,7 @@ EcaChatPresenter >> initializePresenters [
 		yourself.
 	input := self newTextInput
 		placeholder: 'Prompt (@ context, / commands)';
+		whenSubmitDo: [ :text | self sendPrompt ];
 		yourself.
 	modelList := self newDropList
 		items: client session models;
