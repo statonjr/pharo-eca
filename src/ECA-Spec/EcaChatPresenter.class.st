@@ -14,7 +14,10 @@ Class {
 		'modelList',
 		'sendButton',
 		'stopButton',
-		'approvalsSeen'
+		'approvalsSeen',
+		'selectedContexts',
+		'completionProcess',
+		'lastCompletionToken'
 	],
 	#category : 'ECA-Spec-Presenters',
 	#package : 'ECA-Spec',
@@ -69,6 +72,7 @@ EcaChatPresenter >> initializePresenters [
 	input := self newTextInput
 		placeholder: 'Prompt (@ context, / commands)';
 		whenSubmitDo: [ :text | self sendPrompt ];
+		whenTextChangedDo: [ :text | self scheduleCompletionFrom: text asString ];
 		yourself.
 	modelList := self newDropList
 		items: client session models;
@@ -117,16 +121,125 @@ EcaChatPresenter >> prefill: aString [
 	input text: aString
 ]
 
+{ #category : 'accessing' }
+EcaChatPresenter >> selectedContexts [
+	^ selectedContexts ifNil: [ selectedContexts := OrderedCollection new ]
+]
+
+{ #category : 'completion' }
+EcaChatPresenter >> scheduleCompletionFrom: aString [
+	"Debounce: (re)start a background query 400ms after the last keystroke."
+
+	completionProcess ifNotNil: [ :p | p terminate ].
+	aString ifEmpty: [ ^ lastCompletionToken := nil ].
+	completionProcess := [
+		(Delay forMilliseconds: 400) wait.
+		self completeFrom: aString ]
+			forkAt: Processor userBackgroundPriority
+			named: 'eca completion'
+]
+
+{ #category : 'completion' }
+EcaChatPresenter >> completeFrom: aString [
+	| token |
+	(aString beginsWith: '/') ifTrue: [
+		(aString includes: Character space) ifTrue: [ ^ self ].
+		token := aString allButFirst.
+		token = lastCompletionToken ifTrue: [ ^ self ].
+		lastCompletionToken := token.
+		^ self offerCommandsFor: token ].
+	token := self atTokenIn: aString.
+	token ifNil: [ ^ self ].
+	token = lastCompletionToken ifTrue: [ ^ self ].
+	lastCompletionToken := token.
+	self offerContextsFor: token
+]
+
+{ #category : 'completion' }
+EcaChatPresenter >> atTokenIn: aString [
+	"Answer the text after a trailing @ at a word boundary, or nil."
+
+	| index |
+	index := aString lastIndexOf: $@.
+	index = 0 ifTrue: [ ^ nil ].
+	(index > 1 and: [ (aString at: index - 1) isSeparator not ])
+		ifTrue: [ ^ nil ].
+	^ aString copyFrom: index + 1 to: aString size
+]
+
+{ #category : 'completion' }
+EcaChatPresenter >> offerContextsFor: token [
+	| result items |
+	result := [ client queryContext: token inChat: chatId ]
+		on: Error
+		do: [ :e | ^ self ].
+	items := result at: 'contexts' ifAbsent: [ #(  ) ].
+	items isEmpty ifTrue: [ ^ self ].
+	UIManager default defer: [ self chooseContextFrom: items ]
+]
+
+{ #category : 'completion' }
+EcaChatPresenter >> chooseContextFrom: items [
+	| choice text index label |
+	choice := UIManager default
+		chooseFrom: (items collect: [ :each | self labelForContext: each ])
+		values: items
+		title: 'Add context'.
+	choice ifNil: [ ^ self ].
+	self selectedContexts add: choice.
+	label := self labelForContext: choice.
+	text := input text asString.
+	index := text lastIndexOf: $@.
+	index = 0 ifTrue: [ ^ self ].
+	input text: (text first: index - 1) , '@' , label , ' '
+]
+
+{ #category : 'completion' }
+EcaChatPresenter >> labelForContext: aContextDictionary [
+	^ aContextDictionary
+		at: 'path'
+		ifAbsent: [ aContextDictionary at: 'type' ifAbsent: [ 'context' ] ]
+]
+
+{ #category : 'completion' }
+EcaChatPresenter >> offerCommandsFor: token [
+	| result items |
+	result := [ client queryCommands: token inChat: chatId ]
+		on: Error
+		do: [ :e | ^ self ].
+	items := result at: 'commands' ifAbsent: [ #(  ) ].
+	items isEmpty ifTrue: [ ^ self ].
+	UIManager default defer: [ self chooseCommandFrom: items ]
+]
+
+{ #category : 'completion' }
+EcaChatPresenter >> chooseCommandFrom: items [
+	| choice |
+	choice := UIManager default
+		chooseFrom: (items collect: [ :each |
+			(each at: 'name' ifAbsent: [ '?' ]) ,
+			((each at: 'description' ifAbsent: [ nil ])
+				ifNil: [ '' ]
+				ifNotNil: [ :d | ' — ' , d ]) ])
+		values: items
+		title: 'Commands'.
+	choice ifNil: [ ^ self ].
+	input text: '/' , (choice at: 'name' ifAbsent: [ '' ]) , ' '
+]
+
 { #category : 'actions' }
 EcaChatPresenter >> sendPrompt [
-	| text |
+	| text contexts |
 	text := input text asString trimBoth.
 	text ifEmpty: [ ^ self ].
 	input text: ''.
+	lastCompletionToken := nil.
+	contexts := self selectedContexts asArray.
+	selectedContexts := OrderedCollection new.
 	client session selectedModel: modelList selectedItem.
 	[
 	[ | result |
-	result := client prompt: text inChat: chatId.
+	result := client prompt: text inChat: chatId contexts: contexts.
 	chatId ifNil: [ chatId := result at: 'chatId' ifAbsent: [ nil ] ] ]
 		on: Error
 		do: [ :e |

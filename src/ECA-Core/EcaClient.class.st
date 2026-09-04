@@ -110,6 +110,11 @@ EcaClient >> registerHandlers [
 
 { #category : 'api - chat' }
 EcaClient >> prompt: aString inChat: chatIdOrNil [
+	^ self prompt: aString inChat: chatIdOrNil contexts: nil
+]
+
+{ #category : 'api - chat' }
+EcaClient >> prompt: aString inChat: chatIdOrNil contexts: aCollectionOrNil [
 	"Omit optional keys entirely when absent: the server rejects blank/null
 	 chat ids (it mints one and returns it when the field is omitted)."
 
@@ -121,27 +126,27 @@ EcaClient >> prompt: aString inChat: chatIdOrNil [
 		params at: 'model' put: model ].
 	self session selectedAgent ifNotNil: [ :agent |
 		params at: 'agent' put: agent ].
+	aCollectionOrNil ifNotNil: [ :contexts |
+		contexts ifNotEmpty: [ params at: 'contexts' put: contexts asArray ] ].
 	^ connection sendRequest: 'chat/prompt' params: params timeout: 5 minutes
 ]
 
 { #category : 'api - chat' }
-EcaClient >> queryContext: aString inChat: chatId [
-	^ connection
-		sendRequest: 'chat/queryContext'
-		params: (Dictionary new
-			at: 'chatId' put: chatId;
-			at: 'query' put: aString;
-			yourself)
+EcaClient >> queryContext: aString inChat: chatIdOrNil [
+	| params |
+	params := Dictionary new.
+	params at: 'query' put: aString.
+	chatIdOrNil ifNotNil: [ params at: 'chatId' put: chatIdOrNil ].
+	^ connection sendRequest: 'chat/queryContext' params: params
 ]
 
 { #category : 'api - chat' }
-EcaClient >> queryCommands: aString inChat: chatId [
-	^ connection
-		sendRequest: 'chat/queryCommands'
-		params: (Dictionary new
-			at: 'chatId' put: chatId;
-			at: 'query' put: aString;
-			yourself)
+EcaClient >> queryCommands: aString inChat: chatIdOrNil [
+	| params |
+	params := Dictionary new.
+	params at: 'query' put: aString.
+	chatIdOrNil ifNotNil: [ params at: 'chatId' put: chatIdOrNil ].
+	^ connection sendRequest: 'chat/queryCommands' params: params
 ]
 
 { #category : 'api - tools' }
