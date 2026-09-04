@@ -17,6 +17,27 @@
         "required": ["code", "port"]
       }
     },
+    "pharo-peer-test": {
+      "description": "Run SUnit tests in a peer Pharo image running EcaPeerServer. Provide scope 'class' with a TestCase class name, or scope 'package' with a package name (runs all its test classes). Returns JSON: tests/passed/failures/errors/skipped counts, timeMs, and defects (names of failed or errored tests). The default peer listens on port 8086.",
+      "command": "curl -s --fail-with-body \"localhost:{{port}}/test?{{scope}}={{name}}\"",
+      "schema": {
+        "properties": {
+          "scope": {
+            "type": "string",
+            "description": "Either 'class' or 'package'."
+          },
+          "name": {
+            "type": "string",
+            "description": "The test class name (e.g. 'EcaJsonRpcFramerTest') or package name (e.g. 'ECA-Tests')."
+          },
+          "port": {
+            "type": "integer",
+            "description": "The peer server port. Use 8086 unless told otherwise."
+          }
+        },
+        "required": ["scope", "name", "port"]
+      }
+    },
     "pharo-peer-classes": {
       "description": "Search class names in a peer Pharo image running EcaPeerServer (substring match, max 100 results, one per line). The default peer listens on port 8086.",
       "command": "curl -s --fail-with-body \"localhost:{{port}}/classes?q={{query}}\"",

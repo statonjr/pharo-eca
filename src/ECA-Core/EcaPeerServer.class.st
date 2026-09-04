@@ -74,7 +74,30 @@ EcaPeerServer >> handleRequest: request [
 	op = 'eval' ifTrue: [ ^ self handleEval: request ].
 	op = 'describe' ifTrue: [ ^ self handleDescribe: request ].
 	op = 'classes' ifTrue: [ ^ self handleClasses: request ].
+	op = 'test' ifTrue: [ ^ self handleTest: request ].
 	^ ZnResponse notFound: request uri
+]
+
+{ #category : 'request handling' }
+EcaPeerServer >> handleTest: request [
+	"GET /test?class=Name or /test?package=Name -> JSON SUnit report."
+
+	| className packageName result |
+	className := request uri queryAt: 'class' ifAbsent: [ nil ].
+	packageName := request uri queryAt: 'package' ifAbsent: [ nil ].
+	(className isNil and: [ packageName isNil ]) ifTrue: [
+		^ ZnResponse badRequest: request ].
+	result := EcaPeerSandbox
+		protect: [
+			className
+				ifNotNil: [ EcaPeerTestRunner runClassNamed: className ]
+				ifNil: [ EcaPeerTestRunner runPackageNamed: packageName ] ]
+		timeoutMs: EcaPeerTestRunner timeoutMs.
+	result isOk ifFalse: [ ^ ZnResponse serverError: result message ].
+	result value ifNil: [ ^ ZnResponse notFound: request uri ].
+	^ ZnResponse ok: (ZnEntity
+		with: (NeoJSONWriter toString: result value)
+		type: ZnMimeType applicationJson)
 ]
 
 { #category : 'request handling' }
@@ -100,7 +123,7 @@ EcaPeerServer >> handleDescribe: request [
 		at: 'server' put: 'eca-peer';
 		at: 'image' put: Smalltalk image imageDirectory basename;
 		at: 'pharo' put: SystemVersion current version;
-		at: 'ops' put: #( 'describe' 'classes' 'eval' );
+		at: 'ops' put: #( 'describe' 'classes' 'eval' 'test' );
 		yourself.
 	^ ZnResponse ok: (ZnEntity
 		with: (NeoJSONWriter toString: info)

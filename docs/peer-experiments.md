@@ -48,9 +48,10 @@ Each image is simultaneously **driver** (chat + ECA client) and **drivee**
 
 | Op | Method | Meaning |
 | --- | --- | --- |
-| `/describe` | GET | JSON: image name, Pharo version, available ops |
+| `/describe` | GET | JSON: image name, Pharo version, ops, sandbox rules |
 | `/classes?q=Str` | GET | class names matching a substring (max 100) |
-| `/eval` | POST | body = Smalltalk source → result's `printString` |
+| `/eval` | POST | body = Smalltalk source → result's `printString` (sandboxed) |
+| `/test?class=N` `?package=N` | GET | run an SUnit suite → JSON report with counts and defect names |
 
 Loopback-only binding; every call from a driving agent passes that side's ECA
 tool-approval gate.

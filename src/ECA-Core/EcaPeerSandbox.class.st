@@ -69,13 +69,15 @@ EcaPeerSandbox class >> evaluate: aString [
 	^ self evaluateWithTimeout: aString
 ]
 
-{ #category : 'private' }
-EcaPeerSandbox class >> evaluateWithTimeout: aString [
+{ #category : 'evaluating' }
+EcaPeerSandbox class >> protect: aBlock timeoutMs: anInteger [
+	"Run aBlock in a terminatable background process. Answer an
+	 EcaPeerSandboxResult: ok (with the block's value), error, or timeout."
+
 	| semaphore result process |
 	semaphore := Semaphore new.
 	process := [
-		[ result := EcaPeerSandboxResult ok:
-			(Smalltalk compiler evaluate: aString) printString ]
+		[ result := EcaPeerSandboxResult ok: aBlock value ]
 			on: Error
 			do: [ :e |
 				result := EcaPeerSandboxResult error:
@@ -83,8 +85,15 @@ EcaPeerSandbox class >> evaluateWithTimeout: aString [
 		semaphore signal ] newProcess.
 	process priority: Processor userBackgroundPriority.
 	process resume.
-	(semaphore waitTimeoutMilliseconds: self timeoutMs) ifTrue: [
+	(semaphore waitTimeoutMilliseconds: anInteger) ifTrue: [
 		process terminate.
-		^ EcaPeerSandboxResult timeout: self timeoutMs ].
+		^ EcaPeerSandboxResult timeout: anInteger ].
 	^ result
+]
+
+{ #category : 'private' }
+EcaPeerSandbox class >> evaluateWithTimeout: aString [
+	^ self
+		protect: [ (Smalltalk compiler evaluate: aString) printString ]
+		timeoutMs: self timeoutMs
 ]
